@@ -178,6 +178,7 @@ if __name__ == "__main__":
             st.markdown(f"**Name:** {result['name']}")
             st.markdown(f"**Email:** {result['email']}")
             print(result["status"])
+            st.rerun()
         else:
             st.error("Lead could not be synced to Salesforce.")
             st.markdown(f"**Reason:** {result['reason']}")
