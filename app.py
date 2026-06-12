@@ -9,7 +9,22 @@ from dotenv import load_dotenv
 # ── Load Gemini API Key ───────────────────────────────────────────────────────
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+
+# Fallback to Streamlit secrets if running on Streamlit Cloud
+if not GEMINI_API_KEY:
+    try:
+        if "GEMINI_API_KEY" in st.secrets:
+            GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
+    except Exception:
+        pass
+
+# Initialize client safely if API key is provided
+gemini_client = None
+if GEMINI_API_KEY:
+    try:
+        gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+    except Exception as e:
+        pass
 
 class Salesforce:
     """
@@ -117,6 +132,9 @@ def extract_fields_with_gemini(image: Image.Image) -> tuple[dict, str]:
     """Send the PIL image to Gemini. Returns (fields_dict, raw_text)."""
     field_keys = ["first_name", "last_name", "company", "email", "phone", "title", "website", "address"]
     empty = {k: "" for k in field_keys}
+    if not gemini_client:
+        st.error("Gemini Client is not initialized. Please verify that a valid GEMINI_API_KEY is configured in your Streamlit secrets or environment variables.")
+        return empty, ""
     try:
         response = gemini_client.models.generate_content(
             model="gemini-2.5-flash",
@@ -176,6 +194,8 @@ if __name__ == "__main__":
 
     with col1:
             st.subheader("Scan Card")
+            if not GEMINI_API_KEY:
+                st.warning("⚠️ **Gemini API Key not found.** To enable OCR card scanning, configure the `GEMINI_API_KEY` secret in your Streamlit Cloud settings.")
             input_method = st.radio("Input Source:", ["Upload Image", "Camera"])
             pil_image = None
 
