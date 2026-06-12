@@ -200,15 +200,18 @@ if __name__ == "__main__":
             pil_images = []
 
             if input_method == "Upload Image":
-                uploaded_files = st.file_uploader("Upload Business Card(s) (up to 2):", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
+                uploaded_files = st.file_uploader("Upload Business Card(s) (maximum 2):", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
                 if uploaded_files:
-                    for file in uploaded_files[:2]:
-                        pil_images.append(Image.open(file))
-                    
-                    cols = st.columns(len(pil_images))
-                    for idx, img in enumerate(pil_images):
-                        with cols[idx]:
-                            st.image(img, caption=f"Uploaded Card {idx+1}", use_container_width=True)
+                    if len(uploaded_files) > 2:
+                        st.error("⚠️ Please upload a maximum of 2 images.")
+                    else:
+                        for file in uploaded_files:
+                            pil_images.append(Image.open(file))
+                        
+                        cols = st.columns(len(pil_images))
+                        for idx, img in enumerate(pil_images):
+                            with cols[idx]:
+                                st.image(img, caption=f"Uploaded Card {idx+1}", use_container_width=True)
             else:
                 st.caption("Capture up to 2 images (e.g. Front and Back sides)")
                 col_cam1, col_cam2 = st.columns(2)
