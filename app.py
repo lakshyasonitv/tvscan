@@ -103,11 +103,11 @@ class Salesforce:
 
 # ── Gemini OCR: Extract business card fields + raw text ──────────────────────
 EXTRACTION_PROMPT = """You are a business card OCR assistant.
-Analyze this business card image carefully.
+Analyze the provided business card image(s) carefully. If multiple images are provided (such as the front and back of a card), consolidate their information into a single result.
 
 Return ONLY a valid JSON object with these exact keys:
 {
-  "raw_text": "<all visible text from the card, preserving line breaks with \\n>",
+  "raw_text": "<all visible text from the card(s), preserving line breaks with \\n>",
   "first_name": "",
   "last_name": "",
   "company": "",
@@ -119,7 +119,7 @@ Return ONLY a valid JSON object with these exact keys:
 }
 
 Rules:
-- raw_text: copy ALL text visible on the card exactly as printed, line by line
+- raw_text: copy ALL text visible on the card(s) exactly as printed, line by line
 - Split the full name into first_name and last_name
 - Phone: include country code if visible, keep digits/+/spaces/hyphens only
 - Website: exclude linkedin URLs from this field
@@ -128,8 +128,8 @@ Rules:
 - Return ONLY the JSON object, no markdown, no extra explanation
 """
 
-def extract_fields_with_gemini(image: Image.Image) -> tuple[dict, str]:
-    """Send the PIL image to Gemini. Returns (fields_dict, raw_text)."""
+def extract_fields_with_gemini(images: list[Image.Image]) -> tuple[dict, str]:
+    """Send the list of PIL images to Gemini. Returns (fields_dict, raw_text)."""
     field_keys = ["first_name", "last_name", "company", "email", "phone", "title", "website", "address"]
     empty = {k: "" for k in field_keys}
     if not gemini_client:
@@ -138,7 +138,7 @@ def extract_fields_with_gemini(image: Image.Image) -> tuple[dict, str]:
     try:
         response = gemini_client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=[image, EXTRACTION_PROMPT]
+            contents=list(images) + [EXTRACTION_PROMPT]
         )
         raw = response.text.strip()
         # Strip markdown code fences if present
@@ -197,22 +197,34 @@ if __name__ == "__main__":
             if not GEMINI_API_KEY:
                 st.warning("⚠️ **Gemini API Key not found.** To enable OCR card scanning, configure the `GEMINI_API_KEY` secret in your Streamlit Cloud settings.")
             input_method = st.radio("Input Source:", ["Upload Image", "Camera"])
-            pil_image = None
+            pil_images = []
 
             if input_method == "Upload Image":
-                uploaded_file = st.file_uploader("Upload Business Card:", type=["jpg", "jpeg", "png"])
-                if uploaded_file:
-                    pil_image = Image.open(uploaded_file)
-                    st.image(pil_image, caption="Uploaded Card", use_container_width=True)
+                uploaded_files = st.file_uploader("Upload Business Card(s) (up to 2):", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
+                if uploaded_files:
+                    for file in uploaded_files[:2]:
+                        pil_images.append(Image.open(file))
+                    
+                    cols = st.columns(len(pil_images))
+                    for idx, img in enumerate(pil_images):
+                        with cols[idx]:
+                            st.image(img, caption=f"Uploaded Card {idx+1}", use_container_width=True)
             else:
-                camera_file = st.camera_input("Position the business card in front of the lens")
-                if camera_file:
-                    pil_image = Image.open(camera_file)
+                st.caption("Capture up to 2 images (e.g. Front and Back sides)")
+                col_cam1, col_cam2 = st.columns(2)
+                with col_cam1:
+                    camera_file_1 = st.camera_input("Capture Image 1 (Front)")
+                    if camera_file_1:
+                        pil_images.append(Image.open(camera_file_1))
+                with col_cam2:
+                    camera_file_2 = st.camera_input("Capture Image 2 (Back / Details)")
+                    if camera_file_2:
+                        pil_images.append(Image.open(camera_file_2))
 
-            if pil_image:
+            if pil_images:
                 if st.button("⚡ Scan Card", use_container_width=True):
                     with st.spinner("Sending to Gemini AI for extraction…"):
-                        extracted, _ = extract_fields_with_gemini(pil_image)
+                        extracted, _ = extract_fields_with_gemini(pil_images)
                         st.session_state["extracted_fields"] = extracted
                         st.success("✅ Scan complete!")
 
