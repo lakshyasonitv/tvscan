@@ -213,22 +213,41 @@ if __name__ == "__main__":
                             with cols[idx]:
                                 st.image(img, caption=f"Uploaded Card {idx+1}", use_container_width=True)
             else:
-                st.caption("Capture up to 2 images (e.g. Front and Back sides)")
-                col_cam1, col_cam2 = st.columns(2)
-                with col_cam1:
-                    camera_file_1 = st.camera_input("Capture Image 1 (Front)")
-                    if camera_file_1:
-                        pil_images.append(Image.open(camera_file_1))
-                with col_cam2:
-                    camera_file_2 = st.camera_input("Capture Image 2 (Back / Details)")
-                    if camera_file_2:
-                        pil_images.append(Image.open(camera_file_2))
+                if "captured_images" not in st.session_state:
+                    st.session_state["captured_images"] = []
+
+                # Display already captured photos
+                if st.session_state["captured_images"]:
+                    st.markdown("##### 📷 Captured Photos:")
+                    cols = st.columns(len(st.session_state["captured_images"]))
+                    for idx, img in enumerate(st.session_state["captured_images"]):
+                        with cols[idx]:
+                            st.image(img, caption=f"Photo {idx+1}", use_container_width=True)
+                    if st.button("🗑️ Clear Captured Photos", use_container_width=True):
+                        st.session_state["captured_images"] = []
+                        st.rerun()
+
+                # Display the single camera widget if less than 2 photos are captured
+                if len(st.session_state["captured_images"]) < 2:
+                    camera_key = f"camera_input_{len(st.session_state['captured_images'])}"
+                    camera_file = st.camera_input("Position the card in front of the lens", key=camera_key)
+                    if camera_file:
+                        if st.button("➕ Save Captured Photo", use_container_width=True):
+                            st.session_state["captured_images"].append(Image.open(camera_file))
+                            st.rerun()
+                else:
+                    st.info("💡 You have captured the maximum of 2 photos. Click 'Clear Captured Photos' to start over.")
+
+                pil_images = st.session_state["captured_images"]
 
             if pil_images:
                 if st.button("⚡ Scan Card", use_container_width=True):
                     with st.spinner("Sending to Gemini AI for extraction…"):
                         extracted, _ = extract_fields_with_gemini(pil_images)
                         st.session_state["extracted_fields"] = extracted
+                        # Clear captured camera images after starting the scan/populate sequence
+                        if "captured_images" in st.session_state:
+                            st.session_state["captured_images"] = []
                         st.success("✅ Scan complete!")
 
     with col2:
