@@ -138,7 +138,7 @@ def extract_fields_with_gemini(images: list[Image.Image]) -> tuple[dict, str]:
         return empty, ""
     try:
         response = gemini_client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-2.5-flash-lite",
             contents=list(images) + [EXTRACTION_PROMPT]
         )
         raw = response.text.strip()
@@ -177,9 +177,8 @@ if __name__ == "__main__":
             st.markdown(f"**Salesforce Lead ID:** `{result['lead_id']}`")
             st.markdown(f"**Name:** {result['name']}")
             st.markdown(f"**Email:** {result['email']}")
-            print(result["status"])
-            st.rerun()
-        else:
+            
+        else :
             st.error("Lead could not be synced to Salesforce.")
             st.markdown(f"**Reason:** {result['reason']}")
             if result.get("detail"):
