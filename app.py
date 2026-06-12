@@ -228,6 +228,7 @@ if __name__ == "__main__":
                         st.rerun()
 
                 # Display the single camera widget if less than 2 photos are captured
+                camera_file = None
                 if len(st.session_state["captured_images"]) < 2:
                     camera_key = f"camera_input_{len(st.session_state['captured_images'])}"
                     camera_file = st.camera_input("Position the card in front of the lens", key=camera_key)
@@ -238,11 +239,14 @@ if __name__ == "__main__":
                 else:
                     st.info("💡 You have captured the maximum of 2 photos. Click 'Clear Captured Photos' to start over.")
 
-                pil_images = st.session_state["captured_images"]
+                # Combine saved images and the active camera capture
+                pil_images = list(st.session_state["captured_images"])
+                if camera_file:
+                    pil_images.append(Image.open(camera_file))
 
             if pil_images:
                 if st.button("⚡ Scan Card", use_container_width=True):
-                    with st.spinner("Sending to Gemini AI for extraction…"):
+                    with st.spinner("Processing..."):
                         extracted, _ = extract_fields_with_gemini(pil_images)
                         st.session_state["extracted_fields"] = extracted
                         # Clear captured camera images after starting the scan/populate sequence
