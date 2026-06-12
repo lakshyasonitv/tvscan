@@ -66,6 +66,7 @@ class Salesforce:
             "Phone":      payload.get("phone"),
             "Title":      payload.get("title"),
             "Website":    payload.get("website"),
+            "Description": payload.get("description"),
             "LeadSource": "Event",
             "LinkedIn__c": payload.get("linkedin"),
         }
@@ -130,7 +131,7 @@ Rules:
 
 def extract_fields_with_gemini(images: list[Image.Image]) -> tuple[dict, str]:
     """Send the list of PIL images to Gemini. Returns (fields_dict, raw_text)."""
-    field_keys = ["first_name", "last_name", "company", "email", "phone", "title", "website", "address"]
+    field_keys = ["first_name", "last_name", "company", "email", "phone", "title", "website", "address", "description"]
     empty = {k: "" for k in field_keys}
     if not gemini_client:
         st.error("Gemini Client is not initialized. Please verify that a valid GEMINI_API_KEY is configured in your Streamlit secrets or environment variables.")
@@ -148,6 +149,7 @@ def extract_fields_with_gemini(images: list[Image.Image]) -> tuple[dict, str]:
                 raw = raw[4:]
         data = json.loads(raw.strip())
         raw_text = data.pop("raw_text", "")
+        data["description"] = raw_text
         # Ensure all expected keys are present
         for key in field_keys:
             if key not in data:
@@ -163,7 +165,7 @@ if __name__ == "__main__":
     st.set_page_config(page_title="Card Scanner Pro", page_icon="📇", layout="wide")
 
     if "extracted_fields" not in st.session_state:
-        st.session_state["extracted_fields"] = {k: "" for k in ["first_name", "last_name", "company", "email", "phone", "title", "website", "address"]}
+        st.session_state["extracted_fields"] = {k: "" for k in ["first_name", "last_name", "company", "email", "phone", "title", "website", "address", "description"]}
 
     if "sf_result" not in st.session_state:
         st.session_state["sf_result"] = None
@@ -266,6 +268,7 @@ if __name__ == "__main__":
                 title   = st.text_input("Job Title",     value=st.session_state["extracted_fields"]["title"])
                 web     = st.text_input("Website",       value=st.session_state["extracted_fields"]["website"])
                 addr    = st.text_area("Address",        value=st.session_state["extracted_fields"]["address"])
+                desc    = st.text_area("Description (Raw Card Text)", value=st.session_state["extracted_fields"]["description"])
 
                 consent_check = st.checkbox("Attendee consents to data retention.")
 
@@ -289,7 +292,8 @@ if __name__ == "__main__":
                             "phone":      phone,
                             "title":      title or "",
                             "website":    web or "",
-                            "address":    addr or ""
+                            "address":    addr or "",
+                            "description": desc or ""
                         }
 
                         try:
@@ -328,5 +332,5 @@ if __name__ == "__main__":
                                 "detail": None,
                             }
 
-                        st.session_state["extracted_fields"] = {k: "" for k in ["first_name", "last_name", "company", "email", "phone", "title", "website", "address"]}
+                        st.session_state["extracted_fields"] = {k: "" for k in ["first_name", "last_name", "company", "email", "phone", "title", "website", "address", "description"]}
                         st.rerun()
