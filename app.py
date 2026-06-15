@@ -6,6 +6,17 @@ from PIL import Image
 from google import genai
 from dotenv import load_dotenv
 
+
+hide_menu_style = """
+        <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        </style>
+        """
+st.markdown(hide_menu_style, unsafe_allow_html=True)
+
+
 # ── Load Gemini API Key ───────────────────────────────────────────────────────
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
