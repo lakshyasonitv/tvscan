@@ -233,9 +233,10 @@ if __name__ == "__main__":
                 camera_file = None
                 if len(st.session_state["captured_images"]) < 2:
                     camera_key = f"camera_input_{len(st.session_state['captured_images'])}"
-                    camera_file = st.camera_input("Position the card in front of the lens", key=camera_key)
+                    camera_file = st.camera_input("Take a photo of the business card", key=camera_key)
                     if camera_file:
-                        if st.button("➕ Save Captured Photo", use_container_width=True):
+                        st.caption("Need to capture the back of the card too? Use the button below. Otherwise, just press 'Scan Card'.")
+                        if st.button("➕ Add Back of Business Card", use_container_width=True):
                             st.session_state["captured_images"].append(Image.open(camera_file))
                             st.rerun()
                 else:
@@ -254,12 +255,13 @@ if __name__ == "__main__":
                         # Clear captured camera images after starting the scan/populate sequence
                         if "captured_images" in st.session_state:
                             st.session_state["captured_images"] = []
-                        st.success("✅ Scan complete!")
+                        st.success("✅ Scan complete! Please check the details.")
 
     with col2:
             st.subheader("Review & Edit Details")
-
+            st.caption("We've filled in what we could read from the card. Please check it's correct, then save.")
             with st.form("lead_entry_form"):
+                st.caption("Fields marked with * are required.")
                 f_name  = st.text_input("First Name *",  value=st.session_state["extracted_fields"]["first_name"])
                 l_name  = st.text_input("Last Name *",   value=st.session_state["extracted_fields"]["last_name"])
                 company = st.text_input("Company",       value=st.session_state["extracted_fields"]["company"])
